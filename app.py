@@ -36,6 +36,19 @@ if os.environ.get('VERCEL'):
 app = Flask(__name__, static_folder=BASE_DIR)
 CORS(app)
 
+# Middleware WSGI untuk Vercel: Mengembalikan PATH_INFO asli jika melalui rewrites
+class VercelPathMiddleware:
+    def __init__(self, wsgi_app):
+        self.wsgi_app = wsgi_app
+
+    def __call__(self, environ, start_response):
+        matched = environ.get('HTTP_X_MATCHED_PATH') or environ.get('HTTP_X_FORWARDED_URI')
+        if matched:
+            environ['PATH_INFO'] = matched.split('?')[0]
+        return self.wsgi_app(environ, start_response)
+
+app.wsgi_app = VercelPathMiddleware(app.wsgi_app)
+
 # Helper: Auto-deteksi server IMAP berdasarkan domain email
 def detect_imap_server(email_address):
     domain = email_address.lower().split('@')[-1] if '@' in email_address else ''
@@ -442,6 +455,7 @@ def bookmarklet_page():
     return send_from_directory(BASE_DIR, 'bookmarklet_installer.html')
 
 # API: Ambil semua email dari semua akun aktif secara paralel
+@app.route('/emails', methods=['GET'])
 @app.route('/api/emails', methods=['GET'])
 def get_emails():
     mode = request.args.get('mode', 'unseen') # 'unseen' atau 'all'
@@ -494,6 +508,7 @@ def get_emails():
     })
 
 # API: Ambil detail lengkap 1 email (termasuk full body HTML / text) untuk modal preview
+@app.route('/email/detail', methods=['GET'])
 @app.route('/api/email/detail', methods=['GET'])
 def get_email_detail():
     account_id = request.args.get('account_id')
@@ -563,6 +578,7 @@ def get_email_detail():
                 pass
 
 # API: Dapatkan daftar akun (password disensor untuk keamanan)
+@app.route('/accounts', methods=['GET'])
 @app.route('/api/accounts', methods=['GET'])
 def get_accounts():
     accounts = load_accounts()
@@ -581,6 +597,7 @@ def get_accounts():
     return jsonify({"success": True, "accounts": sanitized})
 
 # API: Tambah atau update akun
+@app.route('/accounts', methods=['POST'])
 @app.route('/api/accounts', methods=['POST'])
 def save_account():
     data = request.json or {}
@@ -630,6 +647,7 @@ def save_account():
         return jsonify({"success": False, "error": "Gagal menyimpan akun ke file"}), 500
 
 # API: Hapus akun
+@app.route('/accounts/<account_id>', methods=['DELETE'])
 @app.route('/api/accounts/<account_id>', methods=['DELETE'])
 def delete_account(account_id):
     accounts = load_accounts()
@@ -643,6 +661,7 @@ def delete_account(account_id):
         return jsonify({"success": False, "error": "Gagal menyimpan perubahan"}), 500
 
 # API: Tes koneksi akun
+@app.route('/accounts/test', methods=['POST'])
 @app.route('/api/accounts/test', methods=['POST'])
 def test_account_connection():
     data = request.json or {}
@@ -676,8 +695,23 @@ def test_account_connection():
             "success": False,
             "error": "Gagal Login (Autentikasi Ditolak). Untuk Gmail/Hotmail, wajib gunakan App Password (Sandi Aplikasi), bukan sandi akun biasa."
         }), 400
-    except Exception as e:
-        return jsonify({"success": False, "error": f"Gagal menghubungkan: {str(e)}"}), 400
+# Fallback API handler untuk Vercel Serverless routing
+@app.route('/api/index', methods=['GET', 'POST', 'DELETE'])
+@app.route('/api', methods=['GET', 'POST', 'DELETE'])
+def vercel_api_fallback():
+    matched = request.headers.get('x-matched-path') or request.headers.get('x-forwarded-uri') or request.args.get('path', '')
+    if 'email/detail' in matched:
+        return get_email_detail()
+    elif 'account' in matched:
+        if request.method == 'POST':
+            if 'test' in matched:
+                return test_account_connection()
+            return save_account()
+        elif request.method == 'DELETE':
+            acc_id = matched.rstrip('/').split('/')[-1]
+            return delete_account(acc_id)
+        return get_accounts()
+    return get_emails()
 
 if __name__ == '__main__':
     print("🚀 Menjalankan Dashboard Email di http://127.0.0.1:5000")
