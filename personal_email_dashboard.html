@@ -1,0 +1,1005 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Inbox Hub - Multi-Account Email Monitor</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    screens: {
+                        'xs': '420px',
+                    },
+                    fontFamily: {
+                        sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+                        mono: ['"JetBrains Mono"', 'monospace'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#f0f7ff',
+                            100: '#e0effe',
+                            200: '#bae0fd',
+                            500: '#0284c7',
+                            600: '#0369a1',
+                            700: '#075985',
+                        },
+                        gmail: '#ea4335',
+                        outlook: '#0078d4'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #0f172a;
+            color: #f1f5f9;
+        }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #1e293b; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 9999px; }
+        ::-webkit-scrollbar-thumb:hover { background: #475569; }
+        
+        .glass-panel {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .glass-card {
+            background: rgba(30, 41, 59, 0.5);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .glass-card:hover {
+            background: rgba(30, 41, 59, 0.85);
+            border-color: rgba(255, 255, 255, 0.15);
+            transform: translateY(-1px);
+        }
+
+        /* Mencegah auto-zoom pada browser HP (iOS Safari / Android Chrome) saat input disentuh */
+        @media screen and (max-width: 768px) {
+            input, select, textarea {
+                font-size: 16px !important;
+            }
+        }
+
+        /* Touch horizontal scrollbar */
+        .touch-scroll {
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+        }
+        .touch-scroll::-webkit-scrollbar {
+            display: none;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col font-sans antialiased selection:bg-sky-500 selection:text-white">
+
+    <!-- Top Sticky Navigation -->
+    <header class="glass-panel sticky top-0 z-30 border-b border-slate-800 shadow-xl shadow-black/20">
+        <div class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center py-2.5 sm:py-0 sm:h-16 gap-2">
+                <!-- Logo & Brand -->
+                <div class="flex items-center gap-2 sm:gap-3 min-w-0">
+                    <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-tr from-sky-600 via-indigo-600 to-cyan-400 p-[1px] shadow-lg shadow-sky-500/20 flex-shrink-0">
+                        <div class="w-full h-full bg-slate-900 rounded-[11px] flex items-center justify-center">
+                            <svg class="w-4 h-4 sm:w-5 sm:h-5 text-sky-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <rect width="20" height="16" x="2" y="4" rx="2"/>
+                                <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="min-w-0">
+                        <div class="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+                            <h1 class="text-sm sm:text-base font-bold text-white tracking-tight">Inbox Hub</h1>
+                            <span class="inline-flex items-center px-1.5 py-0.2 rounded text-[9px] sm:text-[10px] font-semibold bg-sky-500/10 text-sky-400 border border-sky-500/20">
+                                IMAP LIVE
+                            </span>
+                            <span class="inline-flex items-center px-1.5 py-0.2 rounded text-[9px] sm:text-[10px] font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                                2 Jam
+                            </span>
+                        </div>
+                        <p class="text-[10px] sm:text-xs text-slate-400 truncate">Target: <span class="text-red-400 font-semibold">Google</span> &bull; <span class="text-blue-400 font-semibold">Facebook</span> &bull; <span class="text-cyan-400 font-semibold">Microsoft</span></p>
+                    </div>
+                </div>
+
+                <!-- Right Action Bar -->
+                <div class="flex items-center gap-1.5 sm:gap-2.5 flex-shrink-0">
+                    <!-- Realtime Indicator Pill -->
+                    <div id="connection-status-pill" class="inline-flex items-center gap-1.5 px-2 sm:px-3 py-1.5 rounded-lg text-[10px] sm:text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 shadow-sm shadow-emerald-500/10">
+                        <span class="relative flex h-2 w-2">
+                            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                            <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                        </span>
+                        <span id="connection-status-text">Realtime Live</span>
+                    </div>
+
+                    <!-- Refresh Button -->
+                    <button onclick="loadEmails(false)" id="btn-refresh" class="inline-flex items-center gap-1 sm:gap-2 bg-sky-600 hover:bg-sky-500 active:scale-95 text-white px-2.5 sm:px-3.5 py-1.5 rounded-lg text-xs font-semibold shadow-md shadow-sky-600/30 transition-all" title="Segarkan">
+                        <svg id="refresh-spinner" class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+                            <path d="M3 3v5h5"/>
+                            <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/>
+                            <path d="M16 21h5v-5"/>
+                        </svg>
+                        <span class="hidden sm:inline">Segarkan</span>
+                    </button>
+
+                    <!-- Accounts Settings Button -->
+                    <button onclick="openAccountsModal()" class="inline-flex items-center gap-1 sm:gap-1.5 bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-200 border border-slate-700 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-medium transition-all" title="Kelola Akun">
+                        <svg class="w-3.5 h-3.5 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>
+                            <circle cx="12" cy="12" r="3"/>
+                        </svg>
+                        <span class="hidden sm:inline">Kelola Akun</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Container -->
+    <main class="flex-grow max-w-7xl mx-auto w-full px-3 sm:px-6 lg:px-8 py-3.5 sm:py-6 space-y-3.5 sm:space-y-6">
+
+        <!-- Diagnostic Warning Banner (jika backend tidak running atau akun bermasalah) -->
+        <div id="diagnostic-banner" class="hidden"></div>
+
+        <!-- Loading State Skeleton -->
+        <div id="loading-state" class="hidden flex-col items-center justify-center py-20 space-y-4">
+            <div class="relative w-12 h-12">
+                <div class="w-12 h-12 rounded-full border-2 border-sky-500/20 border-t-sky-500 animate-spin"></div>
+                <div class="absolute inset-0 flex items-center justify-center">
+                    <svg class="w-5 h-5 text-sky-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+                    </svg>
+                </div>
+            </div>
+            <div class="text-center">
+                <p class="text-sm font-medium text-slate-300">Menghubungkan ke server IMAP Gmail & Hotmail...</p>
+                <p class="text-xs text-slate-500 mt-1">Mengambil pesan secara paralel dari semua akun aktif</p>
+            </div>
+        </div>
+
+        <!-- Email Cards List Container -->
+        <div id="email-container" class="space-y-3">
+            <!-- Email cards di-inject oleh JS -->
+        </div>
+
+        <!-- Empty State -->
+        <div id="empty-state" class="hidden text-center py-20 glass-panel rounded-2xl border-dashed border-slate-700/60 p-8">
+            <div class="w-14 h-14 mx-auto rounded-2xl bg-slate-800/80 border border-slate-700 flex items-center justify-center text-slate-400 mb-4 shadow-inner">
+                <svg class="w-7 h-7 text-sky-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="20 6 9 17 4 12"/>
+                </svg>
+            </div>
+            <h3 class="text-base font-bold text-white mb-1">Semua Kotak Masuk Bersih!</h3>
+            <p class="text-xs text-slate-400 max-w-sm mx-auto mb-4" id="empty-state-subtitle">
+                Belum ada email masuk dalam 2 jam terakhir dari Google, Facebook, atau Microsoft.
+            </p>
+            <button onclick="loadEmails(false)" class="inline-flex items-center gap-2 text-xs font-semibold px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition">
+                Periksa Ulang
+            </button>
+        </div>
+
+    </main>
+
+    <!-- Modal 1: Detail Baca Pesan Lengkap -->
+    <div id="modal-email-detail" class="fixed inset-0 z-50 hidden overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+        <!-- Backdrop -->
+        <div class="fixed inset-0 bg-black/75 backdrop-blur-sm transition-opacity" onclick="closeEmailDetail()"></div>
+
+        <div class="flex min-h-screen items-center justify-center p-2 sm:p-6 text-center">
+            <div class="relative transform overflow-hidden rounded-2xl bg-slate-900 border border-slate-700 text-left shadow-2xl transition-all w-full max-w-4xl flex flex-col max-h-[94vh]">
+                <!-- Modal Header -->
+                <div class="p-3.5 sm:p-5 border-b border-slate-800 flex justify-between items-start gap-3 bg-slate-900/90">
+                    <div class="min-w-0 flex-grow">
+                        <div class="flex items-center gap-2 mb-1.5 flex-wrap">
+                            <span id="detail-account-badge" class="px-2 py-0.5 rounded text-[10px] sm:text-[11px] font-semibold bg-sky-500/10 text-sky-400 border border-sky-500/20">
+                                email@domain.com
+                            </span>
+                            <span id="detail-date" class="text-[11px] sm:text-xs text-slate-400 font-mono">
+                                26 Sep 2026 11:00
+                            </span>
+                        </div>
+                        <h2 id="detail-subject" class="text-base sm:text-lg font-bold text-white leading-snug break-words">
+                            Subjek Email
+                        </h2>
+                        <div class="mt-2 text-xs text-slate-300 space-y-0.5">
+                            <div class="truncate"><span class="text-slate-500 font-medium">Dari:</span> <strong id="detail-sender" class="text-slate-200 font-semibold"></strong> &lt;<span id="detail-sender-email" class="text-slate-400"></span>&gt;</div>
+                            <div class="truncate"><span class="text-slate-500 font-medium">Kepada:</span> <span id="detail-recipient" class="text-slate-300"></span></div>
+                        </div>
+                    </div>
+
+                    <button onclick="closeEmailDetail()" class="rounded-lg p-1.5 text-slate-400 hover:text-white hover:bg-slate-800 transition flex-shrink-0">
+                        <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="18" y1="6" x2="6" y2="18"/>
+                            <line x1="6" y1="6" x2="18" y2="18"/>
+                        </svg>
+                    </button>
+                </div>
+
+                <!-- Attachments bar if any -->
+                <div id="detail-attachments-bar" class="hidden px-3.5 sm:px-5 py-2 sm:py-2.5 bg-slate-800/40 border-b border-slate-800 text-xs flex items-center gap-2 flex-wrap">
+                    <span class="text-slate-400 font-medium flex items-center gap-1">
+                        <svg class="w-3.5 h-3.5 text-sky-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+                        Lampiran:
+                    </span>
+                    <div id="detail-attachments-list" class="flex items-center gap-2 flex-wrap"></div>
+                </div>
+
+                <!-- Modal Body with Tabs (Preview HTML vs Teks) -->
+                <div class="flex-grow overflow-hidden flex flex-col p-3 sm:p-5 bg-slate-950">
+                    <div class="flex items-center justify-between pb-2.5 border-b border-slate-800/80 mb-2.5">
+                        <div class="flex gap-2 w-full sm:w-auto">
+                            <button onclick="switchBodyTab('html')" id="tab-btn-html" class="flex-1 sm:flex-initial px-2.5 sm:px-3 py-1.5 sm:py-1 rounded text-xs font-semibold bg-sky-600 text-white text-center">
+                                Format (HTML)
+                            </button>
+                            <button onclick="switchBodyTab('plain')" id="tab-btn-plain" class="flex-1 sm:flex-initial px-2.5 sm:px-3 py-1.5 sm:py-1 rounded text-xs font-semibold bg-slate-800 text-slate-400 hover:text-white text-center">
+                                Teks Polos
+                            </button>
+                        </div>
+                        <span class="text-[11px] text-slate-500 hidden sm:inline">Isi pesan dimuat langsung dari server IMAP</span>
+                    </div>
+
+                    <!-- Detail Loading -->
+                    <div id="detail-loading" class="flex-grow flex items-center justify-center py-12">
+                        <div class="flex flex-col items-center gap-3">
+                            <div class="w-8 h-8 rounded-full border-2 border-sky-500/20 border-t-sky-500 animate-spin"></div>
+                            <span class="text-xs text-slate-400">Mengambil isi pesan lengkap...</span>
+                        </div>
+                    </div>
+
+                    <!-- HTML Iframe Container -->
+                    <div id="detail-body-html-wrapper" class="flex-grow hidden h-[55vh] sm:h-[480px] w-full rounded-lg bg-white overflow-hidden shadow-inner border border-slate-700">
+                        <iframe id="detail-iframe" class="w-full h-full border-0" sandbox="allow-same-origin allow-popups"></iframe>
+                    </div>
+
+                    <!-- Plain Text Pre Container -->
+                    <div id="detail-body-plain-wrapper" class="flex-grow hidden h-[55vh] sm:h-[480px] w-full overflow-y-auto rounded-lg bg-slate-900 p-3 sm:p-4 border border-slate-800 text-xs sm:text-sm text-slate-300 font-mono whitespace-pre-wrap selection:bg-sky-500 selection:text-white">
+                        <div id="detail-plain-text"></div>
+                    </div>
+                </div>
+
+                <!-- Modal Footer -->
+                <div class="p-3 sm:p-4 bg-slate-900/90 border-t border-slate-800 flex justify-end">
+                    <button onclick="closeEmailDetail()" class="w-full sm:w-auto px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-200 transition">
+                        Tutup
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal 2: Kelola Akun (Accounts Management) -->
+    <div id="modal-accounts" class="fixed inset-0 z-50 hidden overflow-y-auto" role="dialog" aria-modal="true">
+        <div class="fixed inset-0 bg-black/80 backdrop-blur-sm" onclick="closeAccountsModal()"></div>
+        <div class="flex min-h-screen items-center justify-center p-2.5 sm:p-6 text-center">
+            <div class="relative transform overflow-hidden rounded-2xl bg-slate-900 border border-slate-700 text-left shadow-2xl transition-all w-full max-w-2xl max-h-[94vh] flex flex-col">
+                <div class="p-4 sm:p-5 border-b border-slate-800 flex justify-between items-center bg-slate-900/90">
+                    <div>
+                        <h2 class="text-base font-bold text-white flex items-center gap-2">
+                            <span>Kelola Akun Email (Gmail)</span>
+                        </h2>
+                        <p class="text-xs text-slate-400">Konfigurasi disimpan di file <code class="text-sky-400 font-mono">accounts.json</code></p>
+                    </div>
+                    <button onclick="closeAccountsModal()" class="rounded-lg p-1.5 text-slate-400 hover:text-white hover:bg-slate-800 transition">
+                        <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="18" y1="6" x2="6" y2="18"/>
+                            <line x1="6" y1="6" x2="18" y2="18"/>
+                        </svg>
+                    </button>
+                </div>
+
+                <!-- Account List & Form -->
+                <div class="p-4 sm:p-5 overflow-y-auto space-y-5 sm:space-y-6 flex-grow">
+                    <!-- Existing Accounts -->
+                    <div>
+                        <h3 class="text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2.5 sm:mb-3">Akun Terdaftar</h3>
+                        <div id="accounts-list-container" class="space-y-2">
+                            <!-- Injected by JS -->
+                        </div>
+                    </div>
+
+                    <!-- Add / Edit Form -->
+                    <div class="p-3.5 sm:p-4 rounded-xl bg-slate-950/70 border border-slate-800">
+                        <h3 class="text-xs font-bold text-sky-400 uppercase tracking-wider mb-3" id="account-form-title">
+                            + Tambah Akun Baru
+                        </h3>
+                        <form id="account-form" onsubmit="handleAccountFormSubmit(event)" class="space-y-3">
+                            <input type="hidden" id="form-account-id" value="">
+                            
+                            <div>
+                                <label class="block text-xs font-medium text-slate-300 mb-1">Nama Label Akun (Opsional)</label>
+                                <input type="text" id="form-account-name" placeholder="Misal: Email Pribadi / Akun Kerja" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-sky-500">
+                            </div>
+
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3">
+                                <div>
+                                    <label class="block text-xs font-medium text-slate-300 mb-1">Alamat Email *</label>
+                                    <input type="email" id="form-account-email" required placeholder="nama@gmail.com" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-sky-500">
+                                </div>
+                                <div>
+                                    <div class="flex items-center justify-between mb-1">
+                                        <label class="block text-xs font-medium text-slate-300">
+                                            Sandi Aplikasi (App Password) *
+                                        </label>
+                                        <a href="/bookmarklet_installer.html" target="_blank" class="text-[10px] text-sky-400 hover:text-sky-300 font-medium inline-flex items-center gap-1 transition" title="Pasang Bookmarklet Chrome">
+                                            ⚡ Tools Bookmarklet
+                                        </a>
+                                    </div>
+                                    <input type="password" id="form-account-password" placeholder="16 karakter sandi aplikasi" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-sky-500">
+                                </div>
+                            </div>
+
+                            <!-- Test result feedback message -->
+                            <div id="test-connection-result" class="hidden text-xs p-2.5 rounded-lg"></div>
+
+                            <div class="flex items-center justify-between pt-2">
+                                <button type="button" onclick="testConnection()" id="btn-test-conn" class="px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-300 border border-slate-700 transition">
+                                    Tes Koneksi IMAP
+                                </button>
+                                <div class="flex gap-2">
+                                    <button type="button" onclick="resetAccountForm()" class="px-3 py-2 rounded-lg bg-transparent hover:bg-slate-800 text-xs text-slate-400 hover:text-white transition">
+                                        Batal
+                                    </button>
+                                    <button type="submit" id="btn-save-acc" class="px-4 py-2 rounded-lg bg-sky-600 hover:bg-sky-500 text-xs font-bold text-white transition shadow-md shadow-sky-600/30">
+                                        Simpan Akun
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript Application Logic -->
+    <script>
+        // API Base URL - Gunakan host yang sama jika dibuka via http://127.0.0.1:5000/
+        const API_BASE = window.location.origin.includes('http') && !window.location.origin.includes('file://')
+            ? window.location.origin
+            : 'http://127.0.0.1:5000';
+
+        // State Dashboard
+        let currentMode = 'all'; // Menampilkan semua email langsung dalam 2 jam terakhir
+        let currentAccountFilter = 'all';
+        let rawEmailList = [];
+        let accountsStatusList = [];
+        let currentTabBody = 'html';
+        let cachedEmailDetail = null;
+
+        let isFetching = false;
+        let realtimeTimer = null;
+
+        // Inisialisasi awal & Realtime background sync
+        window.addEventListener('DOMContentLoaded', () => {
+            loadEmails(false); // First load with skeleton
+            startRealtimePolling(5); // Polling otomatis setiap 5 detik secara silent (Realtime)
+            
+            // Tangkap tombol Esc untuk menutup modal
+            window.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') {
+                    closeEmailDetail();
+                    closeAccountsModal();
+                }
+            });
+        });
+
+        // Loop Realtime otomatis
+        function startRealtimePolling(seconds = 5) {
+            if (realtimeTimer) clearInterval(realtimeTimer);
+            realtimeTimer = setInterval(() => {
+                loadEmails(true); // Silent sync di background tanpa flicker
+            }, seconds * 1000);
+        }
+
+        // Ambil data email dari API backend (Paten: Google, FB, MS & 2 Jam Terakhir)
+        async function loadEmails(silent = false) {
+            if (isFetching) return; // Mencegah penumpukan request IMAP
+            isFetching = true;
+
+            const container = document.getElementById('email-container');
+            const loading = document.getElementById('loading-state');
+            const emptyState = document.getElementById('empty-state');
+            const refreshSpinner = document.getElementById('refresh-spinner');
+            const statusPill = document.getElementById('connection-status-pill');
+            const statusText = document.getElementById('connection-status-text');
+            const diagnosticBanner = document.getElementById('diagnostic-banner');
+            const limit = 25; // 25 email per akun
+
+            // Jika dipanggil manual, tampilkan animasi skeleton & spinner
+            if (!silent) {
+                loading.classList.remove('hidden');
+                loading.classList.add('flex');
+                container.classList.add('hidden');
+                emptyState.classList.add('hidden');
+                refreshSpinner.classList.add('animate-spin');
+                statusText.textContent = "Sinkronisasi...";
+            }
+
+            try {
+                // Parameter paten: mode=all, sender=all (backend hanya meloloskan Google, FB, MS) & minutes=120 (2 jam)
+                const response = await fetch(`${API_BASE}/api/emails?mode=all&limit=${limit}&sender=all&minutes=120`, {
+                    headers: { 'Accept': 'application/json' }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Server merespon error: HTTP ${response.status}`);
+                }
+
+                const data = await response.json();
+                const newEmails = data.emails || [];
+                accountsStatusList = data.accounts_status || [];
+
+                // Bandingkan UID & status baca pesan agar UI tidak berkedip (flicker) jika data belum berubah
+                const currentFingerprint = rawEmailList.map(e => `${e.account_id}_${e.uid}_${e.is_unread}`).join('|');
+                const incomingFingerprint = newEmails.map(e => `${e.account_id}_${e.uid}_${e.is_unread}`).join('|');
+                const hasChanged = currentFingerprint !== incomingFingerprint || !silent;
+
+                rawEmailList = newEmails;
+
+                if (hasChanged) {
+                    filterEmails();
+                }
+
+                // Bersihkan diagnostic banner jika berhasil
+                diagnosticBanner.classList.add('hidden');
+                diagnosticBanner.innerHTML = '';
+
+                // Periksa jika ada akun dengan error autentikasi
+                const errorAccounts = accountsStatusList.filter(a => a.status !== 'connected');
+                if (errorAccounts.length > 0) {
+                    showAccountWarnings(errorAccounts);
+                }
+
+                statusPill.classList.remove('hidden');
+                statusText.textContent = "Realtime Live";
+                statusPill.className = "inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 shadow-sm shadow-emerald-500/10";
+
+            } catch (err) {
+                console.error("Gagal mengambil email:", err);
+                statusText.textContent = "Terputus";
+                statusPill.className = "inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold bg-rose-500/10 text-rose-400 border border-rose-500/20";
+                
+                if (!silent) {
+                    container.classList.add('hidden');
+                    emptyState.classList.remove('hidden');
+                    document.getElementById('empty-state-subtitle').textContent = `Tidak dapat terhubung ke server backend IMAP (${API_BASE}).`;
+
+                    // Tampilkan banner diagnosa ramah pengguna
+                    diagnosticBanner.classList.remove('hidden');
+                    diagnosticBanner.innerHTML = `
+                        <div class="p-4 rounded-xl bg-rose-950/60 border border-rose-800/80 text-rose-200 text-xs sm:text-sm flex items-start gap-3 shadow-lg">
+                            <svg class="w-5 h-5 text-rose-400 flex-shrink-0 mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+                            </svg>
+                            <div class="flex-grow">
+                                <div class="font-bold text-white mb-1">Gagal Menghubungi Server Backend Flask</div>
+                                <p class="text-rose-300 mb-2">Pastikan script backend <code class="bg-rose-900/60 px-1.5 py-0.5 rounded font-mono text-rose-100">app.py</code> sedang berjalan di terminal.</p>
+                                <div class="p-2.5 rounded-lg bg-black/40 font-mono text-[11px] text-slate-300">
+                                    python3 app.py
+                                </div>
+                            </div>
+                            <button onclick="loadEmails(false)" class="px-3 py-1.5 bg-rose-600 hover:bg-rose-500 text-white rounded-lg text-xs font-semibold whitespace-nowrap">
+                                Coba Lagi
+                            </button>
+                        </div>
+                    `;
+                }
+            } finally {
+                isFetching = false;
+                if (!silent) {
+                    loading.classList.remove('flex');
+                    loading.classList.add('hidden');
+                    refreshSpinner.classList.remove('animate-spin');
+                }
+            }
+        }
+
+        // Tampilkan peringatan spesifik jika ada akun yang auth-nya gagal
+        function showAccountWarnings(errorAccounts) {
+            const diagnosticBanner = document.getElementById('diagnostic-banner');
+            diagnosticBanner.classList.remove('hidden');
+            const items = errorAccounts.map(a => `
+                <li class="flex items-center justify-between py-1">
+                    <div>
+                        <span class="font-bold text-amber-200">${a.account_name} (${a.account_email}):</span>
+                        <span class="text-amber-300/90 ml-1">${a.error_message || 'Gagal login IMAP'}</span>
+                    </div>
+                    <button onclick="editAccount('${a.account_id}')" class="text-xs text-sky-400 underline hover:text-sky-300 ml-2">Perbaiki Sandi</button>
+                </li>
+            `).join('');
+
+            diagnosticBanner.innerHTML = `
+                <div class="p-4 rounded-xl bg-amber-950/50 border border-amber-800/80 text-amber-200 text-xs shadow-lg">
+                    <div class="flex items-center gap-2 font-bold text-amber-300 mb-1.5">
+                        <svg class="w-4 h-4 text-amber-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                        Perhatian: Terdapat ${errorAccounts.length} akun yang belum terhubung
+                    </div>
+                    <ul class="divide-y divide-amber-900/40">${items}</ul>
+                </div>
+            `;
+        }
+
+
+        // Tampilkan daftar email
+        function filterEmails() {
+            const container = document.getElementById('email-container');
+            const emptyState = document.getElementById('empty-state');
+
+            if (!rawEmailList || rawEmailList.length === 0) {
+                container.classList.add('hidden');
+                emptyState.classList.remove('hidden');
+                document.getElementById('empty-state-subtitle').textContent = "Belum ada email masuk dalam 2 jam terakhir dari Google, Facebook, atau Microsoft.";
+                return;
+            }
+
+            emptyState.classList.add('hidden');
+            container.classList.remove('hidden');
+            renderEmailCards(rawEmailList);
+        }
+
+        // Render Daftar Kartu Email
+        function renderEmailCards(emails) {
+            const container = document.getElementById('email-container');
+            container.innerHTML = '';
+
+            emails.forEach(email => {
+                const card = document.createElement('div');
+                card.className = "glass-card rounded-xl p-3 sm:p-4.5 cursor-pointer relative overflow-hidden group";
+                card.onclick = () => openEmailDetail(email.account_id, email.uid);
+
+                // Styling pengirim brand khusus (Google, Facebook, Microsoft)
+                const senderTag = email.sender_tag || 'google';
+                let senderBrandBadge = '';
+                let avatarColor = 'from-slate-600 to-slate-700';
+                let avatarIcon = 'E';
+
+                if (senderTag === 'google') {
+                    avatarColor = 'from-red-500 via-rose-500 to-amber-500';
+                    avatarIcon = 'G';
+                    senderBrandBadge = `
+                        <span class="inline-flex items-center gap-1 px-1.5 sm:px-2 py-0.5 rounded text-[9px] sm:text-[10px] font-bold bg-red-500/10 text-red-400 border border-red-500/30">
+                            <span class="w-1.5 h-1.5 rounded-full bg-red-400"></span>
+                            Google
+                        </span>
+                    `;
+                } else if (senderTag === 'facebook') {
+                    avatarColor = 'from-blue-600 to-indigo-600';
+                    avatarIcon = 'f';
+                    senderBrandBadge = `
+                        <span class="inline-flex items-center gap-1 px-1.5 sm:px-2 py-0.5 rounded text-[9px] sm:text-[10px] font-bold bg-blue-500/10 text-blue-400 border border-blue-500/30">
+                            <span class="w-1.5 h-1.5 rounded-full bg-blue-400"></span>
+                            Facebook
+                        </span>
+                    `;
+                } else if (senderTag === 'microsoft') {
+                    avatarColor = 'from-cyan-500 to-sky-600';
+                    avatarIcon = 'MS';
+                    senderBrandBadge = `
+                        <span class="inline-flex items-center gap-1 px-1.5 sm:px-2 py-0.5 rounded text-[9px] sm:text-[10px] font-bold bg-cyan-500/10 text-cyan-400 border border-cyan-500/30">
+                            <span class="w-1.5 h-1.5 rounded-full bg-cyan-400"></span>
+                            Microsoft
+                        </span>
+                    `;
+                }
+
+                // Unread dot
+                let unreadDot = email.is_unread ? `
+                    <span class="w-2 h-2 rounded-full bg-sky-400 shadow-sm shadow-sky-400/50 flex-shrink-0" title="Belum dibaca"></span>
+                ` : '';
+
+                card.innerHTML = `
+                    <div class="flex items-start gap-2.5 sm:gap-3.5">
+                        <!-- Avatar / Initial Brand -->
+                        <div class="flex-shrink-0 mt-0.5">
+                            <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br ${avatarColor} p-[1px] shadow-md shadow-black/30">
+                                <div class="w-full h-full bg-slate-900/90 rounded-[11px] flex items-center justify-center font-extrabold text-white text-xs sm:text-sm">
+                                    ${avatarIcon}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Info Content -->
+                        <div class="flex-grow min-w-0">
+                            <!-- Top row: Sender & Date -->
+                            <div class="flex items-center justify-between gap-1.5 sm:gap-2 mb-1">
+                                <div class="flex items-center gap-1 sm:gap-2 min-w-0">
+                                    ${unreadDot}
+                                    ${senderBrandBadge}
+                                    <h3 class="text-xs sm:text-sm font-bold text-slate-100 truncate">${escapeHtml(email.sender_name)}</h3>
+                                    <span class="text-xs text-slate-400 truncate hidden md:inline">&lt;${escapeHtml(email.sender_email)}&gt;</span>
+                                </div>
+                                <div class="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
+                                    <span class="inline-flex items-center gap-1 px-1.5 sm:px-2 py-0.5 rounded text-[9px] sm:text-[10px] font-bold bg-amber-500/10 text-amber-300 border border-amber-500/30 font-mono whitespace-nowrap">
+                                        ⏱️ ${escapeHtml(email.rel_time || 'Baru saja')}
+                                    </span>
+                                    <span class="text-[11px] text-slate-400 whitespace-nowrap font-mono hidden md:inline">${escapeHtml(email.date_str)}</span>
+                                </div>
+                            </div>
+
+                            <!-- Subject line -->
+                            <div class="text-xs sm:text-sm font-semibold text-slate-200 mb-1 sm:mb-1.5 group-hover:text-sky-300 transition-colors line-clamp-1 sm:truncate">
+                                ${escapeHtml(email.subject)}
+                            </div>
+
+                            <!-- Snippet preview -->
+                            <p class="text-[11px] sm:text-xs text-slate-400 line-clamp-2 leading-relaxed mb-2 sm:mb-2.5 font-normal">
+                                ${escapeHtml(email.snippet || '(Tidak ada pratinjau teks)')}
+                            </p>
+
+                            <!-- Bottom row: Account Badge & Actions -->
+                            <div class="flex items-center justify-between gap-2 pt-1 border-t border-slate-800/60">
+                                <div class="flex items-center gap-2 min-w-0">
+                                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] sm:text-[11px] font-medium bg-slate-800 text-slate-300 border border-slate-700 truncate max-w-[200px] sm:max-w-none">
+                                        <span class="hidden sm:inline">Kotak Masuk: </span>${escapeHtml(email.account_email)}
+                                    </span>
+                                </div>
+
+                                <button class="text-xs font-semibold text-sky-400 group-hover:text-sky-300 flex items-center gap-1 flex-shrink-0 transition">
+                                    <span>Baca</span>
+                                    <svg class="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                container.appendChild(card);
+            });
+        }
+
+        // Buka Modal Detail Pesan
+        async function openEmailDetail(accountId, uid) {
+            const modal = document.getElementById('modal-email-detail');
+            const loading = document.getElementById('detail-loading');
+            const htmlWrapper = document.getElementById('detail-body-html-wrapper');
+            const plainWrapper = document.getElementById('detail-body-plain-wrapper');
+            const attachmentsBar = document.getElementById('detail-attachments-bar');
+            const attachmentsList = document.getElementById('detail-attachments-list');
+
+            modal.classList.remove('hidden');
+            loading.classList.remove('hidden');
+            htmlWrapper.classList.add('hidden');
+            plainWrapper.classList.add('hidden');
+            attachmentsBar.classList.add('hidden');
+
+            try {
+                const res = await fetch(`${API_BASE}/api/email/detail?account_id=${encodeURIComponent(accountId)}&uid=${encodeURIComponent(uid)}`);
+                const data = await res.json();
+
+                if (!data.success || !data.email) {
+                    throw new Error(data.error || "Gagal memuat pesan email");
+                }
+
+                const em = data.email;
+                cachedEmailDetail = em;
+
+                document.getElementById('detail-subject').textContent = em.subject || '(Tanpa Subjek)';
+                document.getElementById('detail-sender').textContent = em.sender_name || em.sender_email;
+                document.getElementById('detail-sender-email').textContent = em.sender_email;
+                document.getElementById('detail-recipient').textContent = em.recipient;
+                document.getElementById('detail-date').textContent = em.date_str;
+                document.getElementById('detail-account-badge').textContent = em.account_email;
+
+                // Lampiran
+                if (em.attachments && em.attachments.length > 0) {
+                    attachmentsBar.classList.remove('hidden');
+                    attachmentsList.innerHTML = em.attachments.map(att => `
+                        <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-slate-800 text-slate-200 border border-slate-700 text-xs">
+                            <span class="font-mono">${escapeHtml(att.filename)}</span>
+                            <span class="text-slate-400 text-[10px]">(${formatBytes(att.size)})</span>
+                        </span>
+                    `).join('');
+                }
+
+                // Render Body
+                loading.classList.add('hidden');
+                
+                // Set HTML content via Iframe sandbox
+                const iframe = document.getElementById('detail-iframe');
+                const plainDiv = document.getElementById('detail-plain-text');
+                
+                plainDiv.textContent = em.body_plain || '(Tidak ada konten teks polos)';
+
+                if (em.body_html) {
+                    // Safe render in iframe
+                    iframe.srcdoc = `
+                        <!DOCTYPE html>
+                        <html>
+                        <head>
+                            <meta charset="utf-8">
+                            <style>
+                                body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: #1e293b; padding: 16px; line-height: 1.6; word-break: break-word; }
+                                img { max-width: 100%; height: auto; }
+                                a { color: #0284c7; }
+                            </style>
+                        </head>
+                        <body>${em.body_html}</body>
+                        </html>
+                    `;
+                    switchBodyTab('html');
+                } else {
+                    switchBodyTab('plain');
+                }
+
+            } catch (err) {
+                loading.classList.add('hidden');
+                plainWrapper.classList.remove('hidden');
+                document.getElementById('detail-plain-text').innerHTML = `
+                    <div class="text-rose-400 p-4">
+                        ⚠️ Terjadi kesalahan saat membaca isi pesan: ${escapeHtml(err.message)}
+                    </div>
+                `;
+            }
+        }
+
+        function switchBodyTab(tab) {
+            currentTabBody = tab;
+            const btnHtml = document.getElementById('tab-btn-html');
+            const btnPlain = document.getElementById('tab-btn-plain');
+            const htmlWrapper = document.getElementById('detail-body-html-wrapper');
+            const plainWrapper = document.getElementById('detail-body-plain-wrapper');
+
+            if (tab === 'html') {
+                btnHtml.className = "px-3 py-1 rounded text-xs font-semibold bg-sky-600 text-white";
+                btnPlain.className = "px-3 py-1 rounded text-xs font-semibold bg-slate-800 text-slate-400 hover:text-white";
+                htmlWrapper.classList.remove('hidden');
+                plainWrapper.classList.add('hidden');
+            } else {
+                btnPlain.className = "px-3 py-1 rounded text-xs font-semibold bg-sky-600 text-white";
+                btnHtml.className = "px-3 py-1 rounded text-xs font-semibold bg-slate-800 text-slate-400 hover:text-white";
+                plainWrapper.classList.remove('hidden');
+                htmlWrapper.classList.add('hidden');
+            }
+        }
+
+        function closeEmailDetail() {
+            document.getElementById('modal-email-detail').classList.add('hidden');
+            document.getElementById('detail-iframe').srcdoc = '';
+        }
+
+        // ==========================================
+        // Kelola Akun (Modal & API)
+        // ==========================================
+        async function openAccountsModal() {
+            document.getElementById('modal-accounts').classList.remove('hidden');
+            loadAccountsList();
+        }
+
+        function closeAccountsModal() {
+            document.getElementById('modal-accounts').classList.add('hidden');
+            resetAccountForm();
+        }
+
+        async function loadAccountsList() {
+            const container = document.getElementById('accounts-list-container');
+            container.innerHTML = `<div class="text-xs text-slate-400 py-3">Memuat akun...</div>`;
+
+            try {
+                const res = await fetch(`${API_BASE}/api/accounts`);
+                const data = await res.json();
+                const accounts = data.accounts || [];
+
+                if (accounts.length === 0) {
+                    container.innerHTML = `<div class="text-xs text-slate-500 py-3">Belum ada akun yang didaftarkan. Gunakan formulir di bawah untuk menambahkan.</div>`;
+                    return;
+                }
+
+                container.innerHTML = accounts.map(acc => {
+                    return `
+                        <div class="flex items-center justify-between p-3 rounded-lg bg-slate-900 border border-slate-800">
+                            <div>
+                                <div class="flex items-center gap-2">
+                                    <span class="text-xs font-bold text-white">${escapeHtml(acc.name)}</span>
+                                    <span class="text-[10px] px-1.5 py-0.2 rounded border bg-red-500/10 text-red-400 border-red-500/20">Gmail</span>
+                                </div>
+                                <div class="text-xs text-slate-400 font-mono mt-0.5">${escapeHtml(acc.email)}</div>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <button onclick="editAccount('${acc.id}', '${escapeHtml(acc.name)}', '${escapeHtml(acc.email)}')" class="text-xs text-sky-400 hover:text-sky-300 px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 transition">
+                                    Edit
+                                </button>
+                                <button onclick="deleteAccount('${acc.id}', '${escapeHtml(acc.email)}')" class="text-xs text-rose-400 hover:text-rose-300 px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 transition">
+                                    Hapus
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+
+            } catch (err) {
+                container.innerHTML = `<div class="text-xs text-rose-400 py-2">Gagal memuat daftar akun: ${err.message}</div>`;
+            }
+        }
+
+        function editAccount(id, name, email) {
+            document.getElementById('modal-accounts').classList.remove('hidden');
+            document.getElementById('account-form-title').textContent = "✏️ Edit Akun";
+            document.getElementById('form-account-id').value = id;
+            document.getElementById('form-account-name').value = name || '';
+            document.getElementById('form-account-email').value = email || '';
+            document.getElementById('form-account-password').placeholder = "(Kosongkan jika tidak ingin mengubah sandi)";
+            document.getElementById('form-account-password').required = false;
+            document.getElementById('test-connection-result').classList.add('hidden');
+        }
+
+        function resetAccountForm() {
+            document.getElementById('account-form-title').textContent = "+ Tambah Akun Baru";
+            document.getElementById('account-form').reset();
+            document.getElementById('form-account-id').value = '';
+            document.getElementById('form-account-password').placeholder = "16 karakter sandi aplikasi";
+            document.getElementById('test-connection-result').classList.add('hidden');
+        }
+
+        async function handleAccountFormSubmit(e) {
+            e.preventDefault();
+            const btnSave = document.getElementById('btn-save-acc');
+            const origText = btnSave.textContent;
+            btnSave.disabled = true;
+            btnSave.textContent = "Menyimpan...";
+
+            const payload = {
+                id: document.getElementById('form-account-id').value || undefined,
+                name: document.getElementById('form-account-name').value.trim(),
+                email: document.getElementById('form-account-email').value.trim(),
+                password: document.getElementById('form-account-password').value.trim(),
+                server: 'imap.gmail.com',
+                port: 993,
+                active: true
+            };
+
+            try {
+                const res = await fetch(`${API_BASE}/api/accounts`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+                if (!data.success) throw new Error(data.error);
+
+                resetAccountForm();
+                loadAccountsList();
+                loadEmails(); // Refresh dashboard data
+
+            } catch (err) {
+                alert("Gagal menyimpan akun: " + err.message);
+            } finally {
+                btnSave.disabled = false;
+                btnSave.textContent = origText;
+            }
+        }
+
+        async function deleteAccount(id, email) {
+            if (!confirm(`Apakah Anda yakin ingin menghapus akun ${email}?`)) return;
+
+            try {
+                const res = await fetch(`${API_BASE}/api/accounts/${id}`, { method: 'DELETE' });
+                const data = await res.json();
+                if (!data.success) throw new Error(data.error);
+
+                loadAccountsList();
+                loadEmails();
+            } catch (err) {
+                alert("Gagal menghapus akun: " + err.message);
+            }
+        }
+
+        async function testConnection() {
+            const resBox = document.getElementById('test-connection-result');
+            const btnTest = document.getElementById('btn-test-conn');
+            btnTest.disabled = true;
+            btnTest.textContent = "Menguji...";
+            resBox.className = "text-xs p-2.5 rounded-lg bg-sky-950/60 border border-sky-800 text-sky-200";
+            resBox.textContent = "Menghubungkan ke server Gmail IMAP (imap.gmail.com)...";
+            resBox.classList.remove('hidden');
+
+            const payload = {
+                id: document.getElementById('form-account-id').value || undefined,
+                email: document.getElementById('form-account-email').value.trim(),
+                password: document.getElementById('form-account-password').value.trim(),
+                server: 'imap.gmail.com',
+                port: 993
+            };
+
+            try {
+                const res = await fetch(`${API_BASE}/api/accounts/test`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+                if (!data.success) throw new Error(data.error);
+
+                resBox.className = "text-xs p-2.5 rounded-lg bg-emerald-950/70 border border-emerald-800 text-emerald-300";
+                resBox.textContent = "✅ " + data.message;
+            } catch (err) {
+                resBox.className = "text-xs p-2.5 rounded-lg bg-rose-950/70 border border-rose-800 text-rose-300";
+                resBox.textContent = "❌ " + err.message;
+            } finally {
+                btnTest.disabled = false;
+                btnTest.textContent = "Tes Koneksi IMAP";
+            }
+        }
+
+
+
+        // Helpers
+        function escapeHtml(str) {
+            if (!str) return '';
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+
+        function formatBytes(bytes, decimals = 1) {
+            if (!bytes || bytes === 0) return '0 B';
+            const k = 1024;
+            const dm = decimals < 0 ? 0 : decimals;
+            const sizes = ['B', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+        }
+
+        // Salin Kode ke Clipboard & Feedback Toast
+        function copyCode(code, btn) {
+            if (!navigator.clipboard) {
+                prompt("Salin kode ini:", code);
+                return;
+            }
+            navigator.clipboard.writeText(code).then(() => {
+                showToast(`Kode "${code}" berhasil disalin ke clipboard!`);
+                if (btn) {
+                    const original = btn.innerHTML;
+                    btn.innerHTML = `<span class="flex items-center gap-1">Disalin! ✓</span>`;
+                    btn.classList.add('bg-emerald-500', 'text-white');
+                    btn.classList.remove('bg-amber-500', 'text-slate-950');
+                    setTimeout(() => {
+                        btn.innerHTML = original;
+                        btn.classList.remove('bg-emerald-500', 'text-white');
+                        btn.classList.add('bg-amber-500', 'text-slate-950');
+                    }, 1800);
+                }
+            }).catch(() => {
+                prompt("Salin kode ini:", code);
+            });
+        }
+
+        function showToast(message) {
+            const toast = document.getElementById('toast-notification');
+            const toastText = document.getElementById('toast-text');
+            if (!toast) return;
+
+            toastText.textContent = message;
+            toast.classList.remove('translate-y-16', 'opacity-0');
+            toast.classList.add('translate-y-0', 'opacity-100');
+
+            setTimeout(() => {
+                toast.classList.remove('translate-y-0', 'opacity-100');
+                toast.classList.add('translate-y-16', 'opacity-0');
+            }, 3000);
+        }
+    </script>
+
+    <!-- Floating Toast Notification -->
+    <div id="toast-notification" class="fixed bottom-6 right-6 z-50 transform translate-y-16 opacity-0 transition-all duration-300 pointer-events-none">
+        <div class="flex items-center gap-2.5 px-4 py-3 rounded-xl bg-slate-800 border border-slate-700 text-white text-xs font-semibold shadow-2xl shadow-black/50">
+            <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+            <span id="toast-text">Notifikasi</span>
+        </div>
+    </div>
+</body>
+</html>

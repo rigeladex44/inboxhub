@@ -1,0 +1,20 @@
+[
+  {
+    "id": "acc_sample_gmail",
+    "name": "Gmail Pribadi",
+    "email": "contoh.akun@gmail.com",
+    "password": "xxxx xxxx xxxx xxxx",
+    "server": "imap.gmail.com",
+    "port": 993,
+    "active": true
+  },
+  {
+    "id": "acc_sample_hotmail",
+    "name": "Hotmail Kerja",
+    "email": "contoh.akun@hotmail.com",
+    "password": "sandi_aplikasi_atau_password",
+    "server": "outlook.office365.com",
+    "port": 993,
+    "active": true
+  }
+]

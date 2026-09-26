@@ -1,0 +1,23 @@
+# Sensitive credentials
+accounts.json
+.env
+.env.local
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+
+# Vercel
+.vercel
+
+# macOS system files
+.DS_Store
+._*
+.AppleDouble
+.LSOverride

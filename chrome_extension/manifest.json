@@ -1,0 +1,29 @@
+{
+  "manifest_version": 3,
+  "name": "Dashboard Mail - Auto Sandi Gmail",
+  "version": "1.0",
+  "description": "1-Klik dari tab mana pun untuk langsung membuka & membuat Sandi Aplikasi Gmail 'Dashboard Mail'.",
+  "icons": {
+    "16": "icon16.png",
+    "48": "icon48.png",
+    "128": "icon128.png"
+  },
+  "action": {
+    "default_icon": {
+      "16": "icon16.png",
+      "48": "icon48.png",
+      "128": "icon128.png"
+    },
+    "default_title": "⚡ Buat Sandi Gmail (Dashboard Mail)"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "permissions": [
+    "tabs",
+    "scripting"
+  ],
+  "host_permissions": [
+    "https://myaccount.google.com/*"
+  ]
+}
