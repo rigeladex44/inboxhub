@@ -13,7 +13,7 @@ from flask_cors import CORS
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 ACCOUNTS_FILE = os.path.join(BASE_DIR, 'accounts.json')
-HTML_FILE = 'personal_email_dashboard.html'
+HTML_FILE = 'index.html' if os.path.exists(os.path.join(BASE_DIR, 'index.html')) else 'personal_email_dashboard.html'
 
 # Dukungan Vercel Serverless (Filesystem selain /tmp bersifat read-only)
 if os.environ.get('VERCEL'):
